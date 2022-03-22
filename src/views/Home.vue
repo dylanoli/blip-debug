@@ -12,24 +12,11 @@
     <button @click="getContextVariables">Get context variables</button>
     <button @click="() => (responseGetContextVariables = [])">Clear</button>
     <br />
-    <ul>
-      <li v-for="(el, index) in responseGetContextVariables" :key="index">
-        {{ el }}
-      </li>
-    </ul>
+    <div v-for="(el, index) in responseGetContextVariables" :key="index">
+      <strong>{{ el.key }}:</strong>
+      <span>{{ el.value }}</span>
+    </div>
     <br />
-    <!-- Specific -->
-    <strong style="margin-right: 5px">User variabel</strong>
-    <input v-model="userVariabel" type="text" placeholder="User variabel" />
-    <br />
-    <button @click="getContextSpecificVariabel">
-      Get context especific variabel
-    </button>
-    <button @click="() => (responseGetContextSpecifcVariabel = [])">
-      Clear
-    </button>
-    <br />
-    {{ responseGetContextSpecifcVariabel }}
   </div>
 </template>
 
@@ -73,33 +60,48 @@ export default class Home extends Vue {
       method: "get",
       uri: `/contexts/${this.numberUser}@wa.gw.msging.net`,
     };
-    this.responseGetContextVariables = (
+    const response = (
       (await api.post("commands", body, {
         headers: {
           Authorization: this.key,
         },
       })) as any
     ).data.resource.items;
+
+    this.responseGetContextVariables = await response.map((element: any) => ({
+      key: element,
+      value: "searching...",
+    }));
+
+    this.responseGetContextVariables.forEach((element: any, index: number) => {
+      this.getContextSpecificVariabel(index);
+    });
   }
 
-  async getContextSpecificVariabel() {
+  async getContextSpecificVariabel(index: number) {
+    const key = (this.responseGetContextVariables[index] as any).key;
     const body = {
       id: uuidv4(),
       to: "postmaster@msging.net",
       method: "get",
-      uri: `/contexts/${this.numberUser}@wa.gw.msging.net/${this.userVariabel}`,
+      uri: `/contexts/${this.numberUser}@wa.gw.msging.net/${key}`,
     };
-    console.log("body", body);
-    this.responseGetContextSpecifcVariabel = (
+
+    let response = (
       (await api.post("commands", body, {
         headers: {
           Authorization: this.key,
         },
       })) as any
     ).data.resource;
-    if (!this.responseGetContextSpecifcVariabel) {
-      this.responseGetContextSpecifcVariabel = "[[error]]";
-    }
+
+    const value = response ? response : "[[error]]";
+    this.$set(this.responseGetContextVariables, index, { key, value });
   }
 }
 </script>
+<style scoped>
+.home {
+  text-align: left;
+}
+</style>
